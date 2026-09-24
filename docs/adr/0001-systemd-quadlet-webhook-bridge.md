@@ -15,7 +15,7 @@ Directly interacting with systemd from inside the Java container (`amazoncorrett
 
 ## Decision
 We deploy the official, mature `webhook` daemon (by Adnan Hajdarević, packaged directly in Debian 12) as a native `systemd --user` service under the `minecraft` user on the host.
-`lifecycle` communicates with this webhook bridge over standard HTTP REST (`http://host.containers.internal:9000`).
+`lifecycle` communicates with this webhook bridge over standard HTTP REST (`http://host.containers.internal:8012`).
 
 The bridge executes:
 - Start: `systemctl --user start mc@<server>`

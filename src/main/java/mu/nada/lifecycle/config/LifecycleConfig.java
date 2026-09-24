@@ -56,7 +56,7 @@ public class LifecycleConfig {
     @ConfigSerializable
     public static class BridgeSettings {
         @Comment("URL of the host webhook bridge")
-        private String url = "http://host.containers.internal:9000";
+        private String url = "http://host.containers.internal:8012";
 
         @Comment("Timeout in seconds for webhook HTTP requests")
         private int timeoutSeconds = 5;

@@ -25,7 +25,7 @@ class LifecycleConfigTest {
     @Test
     void testCustomUnitResolution() {
         LifecycleConfig.BridgeSettings bridge = new LifecycleConfig.BridgeSettings(
-                "http://localhost:9000",
+                "http://localhost:8012",
                 5,
                 "super-secret-token",
                 "target",
@@ -45,7 +45,7 @@ class LifecycleConfigTest {
     void testConfigDeserializationFromYaml() throws Exception {
         String yaml = """
                 bridge:
-                  url: "http://host.containers.internal:9000"
+                  url: "http://host.containers.internal:8012"
                   timeout-seconds: 10
                   token: "my-secret-123"
                   parameter-name: "server"
@@ -80,7 +80,7 @@ class LifecycleConfigTest {
         LifecycleConfig config = node.get(LifecycleConfig.class);
 
         assertNotNull(config);
-        assertEquals("http://host.containers.internal:9000", config.bridge().url());
+        assertEquals("http://host.containers.internal:8012", config.bridge().url());
         assertEquals(10, config.bridge().timeoutSeconds());
         assertEquals("my-secret-123", config.bridge().token());
         assertEquals("en", config.defaultLanguage());

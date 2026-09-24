@@ -25,7 +25,7 @@
 3. **Infrastructure Integration (Quadlet & Systemd)**:
    - Backend servers are deployed as declarative Quadlet templates (`mc@<name>.container`).
    - Because Quadlet uses `--rm` on container termination, containers are ephemeral. The authoritative controller is `systemctl --user`.
-   - The plugin communicates with systemd via an official `webhook` daemon running under user `minecraft` on the host at `http://host.containers.internal:9000`.
+   - The plugin communicates with systemd via an official `webhook` daemon running under user `minecraft` on the host at `http://host.containers.internal:8012`.
 4. **Security & Auth Bypass Prevention**:
    - `lifecycle` never independently teleports a player whose state in `nadamu-auth` is `PENDING_LOGIN`.
    - Parallel warmup boots the container immediately when a player joins via a forced host, but player transfers only occur after successful authentication.

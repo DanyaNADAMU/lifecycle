@@ -45,7 +45,7 @@
                                  │ HTTP POST
                                  ▼
     ┌─────────────────────────────────────────────────────────┐
-    │     webhook bridge (systemd --user на хосте: порт 9000) │
+    │     webhook bridge (systemd --user на хосте: порт 8012) │
     │     systemctl --user start mc@pvp.service               │
     └────────────────────────────┬────────────────────────────┘
                                  │
@@ -62,7 +62,7 @@
 
 ```yaml
 bridge:
-  url: "http://host.containers.internal:9000"
+  url: "http://host.containers.internal:8012"
   timeout-seconds: 5
   parameter-name: "server"
   unit-template: "mc@{server}"

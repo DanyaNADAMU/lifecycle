@@ -6,7 +6,7 @@
 # Configuration for the host-level systemd webhook bridge (adnanh/webhook)
 bridge:
   # Internal address of the host webhook bridge from within the Podman network
-  url: "http://host.containers.internal:9000"
+  url: "http://host.containers.internal:8012"
   timeout-seconds: 5
 
   # Optional secret authorization token sent in the X-Bridge-Token HTTP header.

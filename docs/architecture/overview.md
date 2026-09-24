@@ -45,7 +45,7 @@
                             │ HTTP REST
                             ▼
           ┌───────────────────────────────────┐
-          │   Host Webhook Bridge (:9000)     │
+          │   Host Webhook Bridge (:8012)     │
           └─────────────────┬─────────────────┘
                             │ CLI execvp
                             ▼

@@ -45,7 +45,7 @@ Designed specifically for containerized Minecraft infrastructures using **Podman
                                     │ HTTP POST
                                     ▼
        ┌────────────────────────────────────────────────────────┐
-       │   webhook bridge (systemd --user on host:9000)         │
+       │   webhook bridge (systemd --user on host:8012)         │
        │   systemctl --user start mc@pvp.service                │
        └────────────────────────────┬───────────────────────────┘
                                     │
@@ -62,7 +62,7 @@ Designed specifically for containerized Minecraft infrastructures using **Podman
 
 ```yaml
 bridge:
-  url: "http://host.containers.internal:9000"
+  url: "http://host.containers.internal:8012"
   timeout-seconds: 5
   parameter-name: "server"
   unit-template: "mc@{server}"
