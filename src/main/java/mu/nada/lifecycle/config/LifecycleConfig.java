@@ -49,12 +49,85 @@ public class LifecycleConfig {
         @Comment("Timeout in seconds for webhook HTTP requests")
         private int timeoutSeconds = 5;
 
+        @Comment("Name of the query parameter passed to the webhook (defaults to 'server')")
+        private String parameterName = "server";
+
+        @Comment("Template for the systemd unit name. '{server}' is replaced with the server name")
+        private String unitTemplate = "mc@{server}";
+
+        @Comment("Configurable hook identifiers matching hooks.json in adnanh/webhook")
+        private HookSettings hooks = new HookSettings();
+
+        public BridgeSettings() {
+        }
+
+        public BridgeSettings(String url, int timeoutSeconds, String parameterName, String unitTemplate, HookSettings hooks) {
+            this.url = url;
+            this.timeoutSeconds = timeoutSeconds;
+            this.parameterName = parameterName;
+            this.unitTemplate = unitTemplate;
+            this.hooks = hooks;
+        }
+
         public String url() {
             return url;
         }
 
         public int timeoutSeconds() {
             return timeoutSeconds;
+        }
+
+        public String parameterName() {
+            return parameterName != null && !parameterName.isBlank() ? parameterName : "server";
+        }
+
+        public String unitTemplate() {
+            return unitTemplate != null ? unitTemplate : "mc@{server}";
+        }
+
+        public HookSettings hooks() {
+            return hooks != null ? hooks : new HookSettings();
+        }
+
+        public String resolveUnitName(String serverName) {
+            String tmpl = unitTemplate();
+            if (!tmpl.isBlank()) {
+                return tmpl.replace("{server}", serverName);
+            }
+            return serverName;
+        }
+    }
+
+    @ConfigSerializable
+    public static class HookSettings {
+        @Comment("Hook ID for starting a server")
+        private String start = "start";
+
+        @Comment("Hook ID for stopping a server")
+        private String stop = "stop";
+
+        @Comment("Hook ID for checking server status")
+        private String status = "status";
+
+        public HookSettings() {
+        }
+
+        public HookSettings(String start, String stop, String status) {
+            this.start = start;
+            this.stop = stop;
+            this.status = status;
+        }
+
+        public String start() {
+            return start != null && !start.isBlank() ? start : "start";
+        }
+
+        public String stop() {
+            return stop != null && !stop.isBlank() ? stop : "stop";
+        }
+
+        public String status() {
+            return status != null && !status.isBlank() ? status : "status";
         }
     }
 
@@ -79,6 +152,9 @@ public class LifecycleConfig {
 
     @ConfigSerializable
     public static class ServerSettings {
+        @Comment("Optional custom systemd unit name. If omitted, bridge.unit-template is used")
+        private String unit = "";
+
         @Comment("How long the server can stay completely empty before being stopped (in minutes)")
         private int idleTimeoutMinutes = 10;
 
@@ -95,10 +171,19 @@ public class LifecycleConfig {
         }
 
         public ServerSettings(int idleTimeoutMinutes, int startupGracePeriodSeconds, int pollIntervalSeconds, int maxStartupWaitSeconds) {
+            this("", idleTimeoutMinutes, startupGracePeriodSeconds, pollIntervalSeconds, maxStartupWaitSeconds);
+        }
+
+        public ServerSettings(String unit, int idleTimeoutMinutes, int startupGracePeriodSeconds, int pollIntervalSeconds, int maxStartupWaitSeconds) {
+            this.unit = unit != null ? unit : "";
             this.idleTimeoutMinutes = idleTimeoutMinutes;
             this.startupGracePeriodSeconds = startupGracePeriodSeconds;
             this.pollIntervalSeconds = pollIntervalSeconds;
             this.maxStartupWaitSeconds = maxStartupWaitSeconds;
+        }
+
+        public String unit() {
+            return unit;
         }
 
         public int idleTimeoutMinutes() {

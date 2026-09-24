@@ -32,8 +32,10 @@ public class ServerRegistry {
 
             Optional<RegisteredServer> registered = proxyServer.getServer(name);
             if (registered.isPresent()) {
-                servers.put(name.toLowerCase(), new ManagedServer(name, registered.get(), settings));
-                logger.info("Registered managed lifecycle server: '{}'", name);
+                String defaultUnit = config.bridge().resolveUnitName(name);
+                ManagedServer server = new ManagedServer(name, registered.get(), settings, defaultUnit);
+                servers.put(name.toLowerCase(), server);
+                logger.info("Registered managed lifecycle server: '{}' (unit: '{}')", name, server.unitName());
             } else {
                 logger.warn("Server '{}' configured in lifecycle config.yml but NOT registered in velocity.toml!", name);
             }

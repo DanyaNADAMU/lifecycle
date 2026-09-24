@@ -65,8 +65,8 @@ public class WakeService {
         server.setStartedAt(Instant.now());
         server.setEmptySince(null);
 
-        logger.info("Initiating warmup for server '{}' via systemd bridge...", serverName);
-        bridgeClient.startServer(server.name());
+        logger.info("Initiating warmup for server '{}' (unit: '{}') via systemd bridge...", serverName, server.unitName());
+        bridgeClient.startServer(server.name(), server.unitName());
 
         startPollingTask(server);
     }

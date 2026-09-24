@@ -22,7 +22,9 @@ The bridge executes:
 - Stop: `systemctl --user stop mc@<server>`
 - Status: `systemctl --user is-active mc@<server>`
 
-Parameters are strictly sanitized using regex (`^[a-zA-Z0-9_-]+$`) to prevent command injection.
+Hook endpoints, query parameter names, and unit name templates (`unit-template: "mc@{server}"`) are fully configurable in `config.yml`.
+Parameters are strictly sanitized in `hooks.json` using regex (`^mc@[a-zA-Z0-9_-]+$`) to prevent command injection.
+For status checks (`systemctl is-active`), when a service is inactive, systemctl exits with code 3. `hooks.json` must include `"include-command-output-in-response-on-error": true` so `adnanh/webhook` passes the output (`inactive`) back in the response body.
 
 ## Consequences
 ### Positive

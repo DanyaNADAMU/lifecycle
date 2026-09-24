@@ -3,11 +3,24 @@
 # Modern Scale-to-Zero and Server Lifecycle Manager for Velocity
 # -------------------------------------------------------------
 
-# Configuration for the host-level systemd webhook bridge
+# Configuration for the host-level systemd webhook bridge (adnanh/webhook)
 bridge:
   # Internal address of the host webhook bridge from within the Podman network
   url: "http://host.containers.internal:9000"
   timeout-seconds: 5
+
+  # Name of the query parameter passed to the webhook (defaults to "server")
+  parameter-name: "server"
+
+  # Systemd unit template passed in the query parameter.
+  # {server} is replaced with the server key (e.g. "pvp" -> "mc@pvp").
+  unit-template: "mc@{server}"
+
+  # Webhook hook IDs matching the "id" fields in hooks.json on the host
+  hooks:
+    start: "start"
+    stop: "stop"
+    status: "status"
 
 # Fallback server used to hold players while backend servers are booting up
 # Typically your lightweight NanoLimbo container
@@ -20,9 +33,11 @@ messages:
   server-failed: "<red>Не удалось запустить сервер {server}. Пожалуйста, обратитесь к администратору.</red>"
 
 # Managed backend servers
-# Names must match both the server name in velocity.toml and the Quadlet unit mc@<name>
+# Keys must match the server name registered in velocity.toml
 servers:
   pvp:
+    # Optional systemd unit override (defaults to unit-template: mc@{server})
+    # unit: "mc@pvp"
     # How long the server can stay completely empty before being stopped (in minutes)
     idle-timeout-minutes: 10
     # Minimum time after boot before idle shutdown checks are enforced (in seconds)

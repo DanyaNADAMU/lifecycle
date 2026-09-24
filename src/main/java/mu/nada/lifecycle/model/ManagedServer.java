@@ -12,6 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ManagedServer {
 
     private final String name;
+    private final String unitName;
     private final RegisteredServer registeredServer;
     private final LifecycleConfig.ServerSettings settings;
 
@@ -22,13 +23,28 @@ public class ManagedServer {
     private final Set<UUID> queuedPlayers = ConcurrentHashMap.newKeySet();
 
     public ManagedServer(String name, RegisteredServer registeredServer, LifecycleConfig.ServerSettings settings) {
+        this(name, registeredServer, settings, "mc@" + name);
+    }
+
+    public ManagedServer(String name, RegisteredServer registeredServer, LifecycleConfig.ServerSettings settings, String defaultUnit) {
         this.name = name;
         this.registeredServer = registeredServer;
         this.settings = settings;
+        if (settings.unit() != null && !settings.unit().isBlank()) {
+            this.unitName = settings.unit();
+        } else if (defaultUnit != null && !defaultUnit.isBlank()) {
+            this.unitName = defaultUnit;
+        } else {
+            this.unitName = "mc@" + name;
+        }
     }
 
     public String name() {
         return name;
+    }
+
+    public String unitName() {
+        return unitName;
     }
 
     public RegisteredServer registeredServer() {

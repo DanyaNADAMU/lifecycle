@@ -89,6 +89,7 @@ public class LifecycleCommand implements SimpleCommand {
         try {
             configManager.reload();
             registry.load(configManager.config());
+            bridgeClient.updateSettings(configManager.config().bridge());
             source.sendMessage(miniMessage.deserialize("<green>Конфигурация lifecycle успешно перезагружена!</green>"));
         } catch (Exception e) {
             logger.error("Failed to reload configuration", e);
@@ -118,7 +119,7 @@ public class LifecycleCommand implements SimpleCommand {
         server.setState(ServerState.STOPPING);
         source.sendMessage(miniMessage.deserialize("<yellow>Отправлен сигнал остановки для " + serverName + "...</yellow>"));
 
-        bridgeClient.stopServer(serverName).thenAccept(success -> {
+        bridgeClient.stopServer(serverName, server.unitName()).thenAccept(success -> {
             if (success) {
                 server.setState(ServerState.STOPPED);
                 source.sendMessage(miniMessage.deserialize("<green>Сервер " + serverName + " успешно остановлен.</green>"));

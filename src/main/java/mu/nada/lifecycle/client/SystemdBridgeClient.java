@@ -14,22 +14,29 @@ import java.util.concurrent.CompletableFuture;
 
 public class SystemdBridgeClient {
 
-    private final HttpClient httpClient;
-    private final LifecycleConfig.BridgeSettings settings;
     private final Logger logger;
+    private volatile LifecycleConfig.BridgeSettings settings;
+    private volatile HttpClient httpClient;
 
     public SystemdBridgeClient(LifecycleConfig.BridgeSettings settings, Logger logger) {
-        this.settings = settings;
         this.logger = logger;
+        updateSettings(settings);
+    }
+
+    public synchronized void updateSettings(LifecycleConfig.BridgeSettings newSettings) {
+        this.settings = newSettings;
         this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(settings.timeoutSeconds()))
+                .connectTimeout(Duration.ofSeconds(newSettings.timeoutSeconds()))
                 .build();
     }
 
     public CompletableFuture<Boolean> startServer(String serverName) {
-        String url = String.format("%s/hooks/start-server?server=%s",
-                settings.url(),
-                URLEncoder.encode(serverName, StandardCharsets.UTF_8));
+        return startServer(serverName, settings.resolveUnitName(serverName));
+    }
+
+    public CompletableFuture<Boolean> startServer(String serverName, String unitName) {
+        String hookName = settings.hooks().start();
+        String url = buildUrl(hookName, unitName);
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
@@ -40,25 +47,29 @@ public class SystemdBridgeClient {
         return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
                 .thenApply(response -> {
                     if (response.statusCode() >= 200 && response.statusCode() < 300) {
-                        logger.info("Successfully triggered start for server '{}'", serverName);
+                        logger.info("Successfully triggered start hook '{}' for server '{}' (unit: '{}')",
+                                hookName, serverName, unitName);
                         return true;
                     } else {
-                        logger.error("Failed to trigger start for server '{}': HTTP {} - {}",
-                                serverName, response.statusCode(), response.body());
+                        logger.error("Failed to trigger start hook '{}' for server '{}' (unit: '{}'): HTTP {} - {}",
+                                hookName, serverName, unitName, response.statusCode(), response.body());
                         return false;
                     }
                 })
                 .exceptionally(ex -> {
-                    logger.error("Error communicating with systemd bridge while starting '{}': {}",
-                            serverName, ex.getMessage());
+                    logger.error("Error communicating with systemd bridge while starting '{}' (unit: '{}'): {}",
+                            serverName, unitName, ex.getMessage());
                     return false;
                 });
     }
 
     public CompletableFuture<Boolean> stopServer(String serverName) {
-        String url = String.format("%s/hooks/stop-server?server=%s",
-                settings.url(),
-                URLEncoder.encode(serverName, StandardCharsets.UTF_8));
+        return stopServer(serverName, settings.resolveUnitName(serverName));
+    }
+
+    public CompletableFuture<Boolean> stopServer(String serverName, String unitName) {
+        String hookName = settings.hooks().stop();
+        String url = buildUrl(hookName, unitName);
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
@@ -69,25 +80,29 @@ public class SystemdBridgeClient {
         return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
                 .thenApply(response -> {
                     if (response.statusCode() >= 200 && response.statusCode() < 300) {
-                        logger.info("Successfully triggered stop for server '{}'", serverName);
+                        logger.info("Successfully triggered stop hook '{}' for server '{}' (unit: '{}')",
+                                hookName, serverName, unitName);
                         return true;
                     } else {
-                        logger.error("Failed to trigger stop for server '{}': HTTP {} - {}",
-                                serverName, response.statusCode(), response.body());
+                        logger.error("Failed to trigger stop hook '{}' for server '{}' (unit: '{}'): HTTP {} - {}",
+                                hookName, serverName, unitName, response.statusCode(), response.body());
                         return false;
                     }
                 })
                 .exceptionally(ex -> {
-                    logger.error("Error communicating with systemd bridge while stopping '{}': {}",
-                            serverName, ex.getMessage());
+                    logger.error("Error communicating with systemd bridge while stopping '{}' (unit: '{}'): {}",
+                            serverName, unitName, ex.getMessage());
                     return false;
                 });
     }
 
     public CompletableFuture<String> getStatus(String serverName) {
-        String url = String.format("%s/hooks/server-status?server=%s",
-                settings.url(),
-                URLEncoder.encode(serverName, StandardCharsets.UTF_8));
+        return getStatus(serverName, settings.resolveUnitName(serverName));
+    }
+
+    public CompletableFuture<String> getStatus(String serverName, String unitName) {
+        String hookName = settings.hooks().status();
+        String url = buildUrl(hookName, unitName);
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
@@ -97,12 +112,41 @@ public class SystemdBridgeClient {
 
         return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
                 .thenApply(response -> {
+                    String body = response.body() != null ? response.body().trim() : "";
                     if (response.statusCode() >= 200 && response.statusCode() < 300) {
-                        return response.body().trim();
-                    } else {
-                        return "unknown";
+                        return body;
                     }
+                    // Handle systemctl is-active non-zero exit code (exit 3 = inactive)
+                    // If webhook returns HTTP 500 but body contains the systemctl output:
+                    if (body.equalsIgnoreCase("inactive") || body.equalsIgnoreCase("failed") || body.equalsIgnoreCase("deactivating")) {
+                        return body.toLowerCase();
+                    }
+                    if (body.contains("inactive")) {
+                        return "inactive";
+                    }
+                    if (body.contains("active") && !body.contains("inactive")) {
+                        return "active";
+                    }
+                    logger.warn("Bridge returned HTTP {} for server '{}' (unit '{}'): {}",
+                            response.statusCode(), serverName, unitName, body);
+                    return "unknown";
                 })
-                .exceptionally(ex -> "unknown");
+                .exceptionally(ex -> {
+                    logger.error("Error communicating with systemd bridge while getting status for '{}' (unit: '{}'): {}",
+                            serverName, unitName, ex.getMessage());
+                    return "unknown";
+                });
+    }
+
+    private String buildUrl(String hookName, String unitName) {
+        String base = settings.url();
+        if (base.endsWith("/")) {
+            base = base.substring(0, base.length() - 1);
+        }
+        return String.format("%s/hooks/%s?%s=%s",
+                base,
+                URLEncoder.encode(hookName, StandardCharsets.UTF_8),
+                URLEncoder.encode(settings.parameterName(), StandardCharsets.UTF_8),
+                URLEncoder.encode(unitName, StandardCharsets.UTF_8));
     }
 }

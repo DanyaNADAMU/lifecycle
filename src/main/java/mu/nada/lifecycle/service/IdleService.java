@@ -83,7 +83,7 @@ public class IdleService implements Runnable {
                         server.name(), emptyMinutes, server.settings().idleTimeoutMinutes());
 
                 server.setState(ServerState.STOPPING);
-                bridgeClient.stopServer(server.name()).thenAccept(success -> {
+                bridgeClient.stopServer(server.name(), server.unitName()).thenAccept(success -> {
                     if (success) {
                         server.setState(ServerState.STOPPED);
                         server.setStartedAt(null);
