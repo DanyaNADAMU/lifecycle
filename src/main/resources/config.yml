@@ -9,6 +9,10 @@ bridge:
   url: "http://host.containers.internal:9000"
   timeout-seconds: 5
 
+  # Optional secret authorization token sent in the X-Bridge-Token HTTP header.
+  # Leave empty if webhook token authentication is disabled.
+  token: ""
+
   # Name of the query parameter passed to the webhook (defaults to "server")
   parameter-name: "server"
 
@@ -26,36 +30,40 @@ bridge:
 # Typically your lightweight NanoLimbo container
 limbo-server: "limbo"
 
-# Player notifications displayed during server startup (MiniMessage format)
-messages:
-  server-starting: "<gold><b>Сервер <yellow>{server}</yellow> запускается...</b></gold><newline><gray>Пожалуйста, подождите немного</gray>"
-  server-ready: "<green>Сервер {server} готов! Подключение...</green>"
-  server-failed: "<red>Не удалось запустить сервер {server}. Пожалуйста, обратитесь к администратору.</red>"
+# Default language code if player client locale is not matched
+# Custom dictionaries and dialects can be placed in plugins/lifecycle/languages/ (e.g. ru.yml, en.yml, ru-ua.yml)
+default-language: "ru"
 
-# Managed backend servers
-# Keys must match the server name registered in velocity.toml
+# Automatic pool discovery:
+# true  - lifecycle automatically manages ALL servers from velocity.toml,
+#         except limbo-server and servers with enabled: false.
+# false - lifecycle manages ONLY servers explicitly listed under 'servers'.
+auto: true
+
+# Default lifecycle settings applied to any managed server unless overridden
+defaults:
+  # How long the server can stay completely empty before being stopped (in minutes)
+  idle-timeout-minutes: 10
+  # Minimum time after boot before idle shutdown checks are enforced (in seconds)
+  startup-grace-period-seconds: 180
+  # Interval between TCP pings while checking if server is alive (in seconds)
+  poll-interval-seconds: 2
+  # Maximum time to wait for server to report alive before failing (in seconds)
+  max-startup-wait-seconds: 120
+
+# Server-specific overrides or whitelist (depending on 'auto' setting above)
 servers:
-  pvp:
-    # Optional systemd unit override (defaults to unit-template: mc@{server})
-    # unit: "mc@pvp"
-    # How long the server can stay completely empty before being stopped (in minutes)
-    idle-timeout-minutes: 10
-    # Minimum time after boot before idle shutdown checks are enforced (in seconds)
-    startup-grace-period-seconds: 180
-    # Interval between TCP pings while checking if server is alive (in seconds)
-    poll-interval-seconds: 2
-    # Maximum time to wait for server to report alive before failing (in seconds)
-    max-startup-wait-seconds: 120
+  # Example 1: In auto mode, exclude lobby from Scale-to-Zero so it runs 24/7
+  # lobby:
+  #   enabled: false
 
-  pillar:
-    idle-timeout-minutes: 10
-    startup-grace-period-seconds: 180
-    poll-interval-seconds: 2
-    max-startup-wait-seconds: 120
-
+  # Example 2: Heavy modpack with longer boot time and custom grace period
   forge:
-    # Heavy modpacks take longer to boot and may need longer idle timeouts
     idle-timeout-minutes: 15
     startup-grace-period-seconds: 300
     poll-interval-seconds: 3
     max-startup-wait-seconds: 300
+
+  # Example 3: Custom unit name override if it doesn't match unit-template
+  # legacy:
+  #   unit: "minecraft-legacy.service"

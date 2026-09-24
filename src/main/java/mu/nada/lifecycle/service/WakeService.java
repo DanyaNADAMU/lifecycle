@@ -2,15 +2,14 @@ package mu.nada.lifecycle.service;
 
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
-import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.scheduler.ScheduledTask;
 import mu.nada.lifecycle.auth.AuthBridge;
 import mu.nada.lifecycle.client.SystemdBridgeClient;
-import mu.nada.lifecycle.config.LifecycleConfig;
+import mu.nada.lifecycle.config.MessagesConfig;
 import mu.nada.lifecycle.model.ManagedServer;
 import mu.nada.lifecycle.model.ServerState;
+import mu.nada.lifecycle.util.MessageService;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.title.Title;
 import org.slf4j.Logger;
 
@@ -28,9 +27,8 @@ public class WakeService {
     private final ServerRegistry registry;
     private final SystemdBridgeClient bridgeClient;
     private final AuthBridge authBridge;
-    private final LifecycleConfig config;
+    private final MessageService messageService;
     private final Logger logger;
-    private final MiniMessage miniMessage = MiniMessage.miniMessage();
 
     private final Map<String, ScheduledTask> pollTasks = new ConcurrentHashMap<>();
 
@@ -39,14 +37,14 @@ public class WakeService {
                        ServerRegistry registry,
                        SystemdBridgeClient bridgeClient,
                        AuthBridge authBridge,
-                       LifecycleConfig config,
+                       MessageService messageService,
                        Logger logger) {
         this.plugin = plugin;
         this.proxyServer = proxyServer;
         this.registry = registry;
         this.bridgeClient = bridgeClient;
         this.authBridge = authBridge;
-        this.config = config;
+        this.messageService = messageService;
         this.logger = logger;
     }
 
@@ -123,9 +121,6 @@ public class WakeService {
         server.setEmptySince(null);
         logger.info("Server '{}' is now healthy and accepting connections!", server.name());
 
-        Component readyMsg = miniMessage.deserialize(
-                config.messages().serverReady().replace("{server}", server.name()));
-
         for (UUID uuid : server.queuedPlayers()) {
             proxyServer.getPlayer(uuid).ifPresent(player -> {
                 if (!authBridge.isAllowedToConnect(player)) {
@@ -134,6 +129,8 @@ public class WakeService {
                     return;
                 }
 
+                Component readyMsg = messageService.getRawComponent(player, MessagesConfig::serverReady,
+                        Map.of("server", server.name()));
                 player.sendActionBar(readyMsg);
                 player.createConnectionRequest(server.registeredServer()).connectWithIndication();
             });
@@ -152,11 +149,9 @@ public class WakeService {
         logger.error("Server '{}' failed to become ready within timeout ({}s)!",
                 server.name(), server.settings().maxStartupWaitSeconds());
 
-        Component failMsg = miniMessage.deserialize(
-                config.messages().serverFailed().replace("{server}", server.name()));
-
         for (UUID uuid : server.queuedPlayers()) {
-            proxyServer.getPlayer(uuid).ifPresent(player -> player.sendMessage(failMsg));
+            proxyServer.getPlayer(uuid).ifPresent(player ->
+                    messageService.sendMessage(player, MessagesConfig::serverFailed, Map.of("server", server.name())));
         }
 
         server.clearQueuedPlayers();
@@ -169,11 +164,12 @@ public class WakeService {
     }
 
     private void sendStartingFeedback(Player player, String serverName) {
-        String rawTemplate = config.messages().serverStarting().replace("{server}", serverName);
+        MessagesConfig msgs = messageService.getMessages(player);
+        String rawTemplate = msgs.serverStarting().replace("{server}", serverName);
         String[] parts = rawTemplate.split("<newline>", 2);
 
-        Component titleText = miniMessage.deserialize(parts[0]);
-        Component subTitleText = parts.length > 1 ? miniMessage.deserialize(parts[1]) : Component.empty();
+        Component titleText = messageService.parse(parts[0]);
+        Component subTitleText = parts.length > 1 ? messageService.parse(parts[1]) : Component.empty();
 
         Title title = Title.title(titleText, subTitleText, Title.Times.times(
                 Duration.ofMillis(300),
@@ -182,7 +178,9 @@ public class WakeService {
         ));
 
         player.showTitle(title);
-        player.sendActionBar(miniMessage.deserialize("<gold>Запуск <b>" + serverName + "</b>...</gold>"));
+        Component actionbar = messageService.getRawComponent(player, MessagesConfig::actionbarStarting,
+                Map.of("server", serverName));
+        player.sendActionBar(actionbar);
     }
 
     public void cancelAll() {

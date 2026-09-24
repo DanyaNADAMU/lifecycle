@@ -16,8 +16,10 @@
   Включает мягкую интеграцию с `nadamu-auth`. Гарантирует, что неавторизованные игроки со статусом `PENDING_LOGIN` ни при каких обстоятельствах не будут перенесены на игровой сервер раньше успешного ввода пароля.
 - **Нативная интеграция с Podman Quadlet и systemd**:
   Взаимодействует с окружением Rootless Podman на хосте через непривилегированный мост `systemd --user` webhook. Полная независимость от ядра сервера или версии Java на бэкенде.
-- **Интерактивный зал ожидания (NanoLimbo Holding)**:
-  Удерживает игрока в виртуальном мире NanoLimbo с анимированными Title и Actionbar сообщениями (MiniMessage) до тех пор, пока целевой сервер не ответит на TCP-пинг.
+- **Интерактивный зал ожидания и мультиязычность (i18n)**:
+  Удерживает игрока в NanoLimbo с анимированными Title и Actionbar сообщениями (MiniMessage). Включает автоопределение языка клиента игрока, встроенные словари (`ru.yml`, `en.yml`), поддержку диалектов (`ru-ua`, `en-us`) и возможность добавления пользовательских локализаций в папку `languages/`.
+- **Гибкое управление пулом (Auto-Discovery & Defaults)**:
+  Поддерживает как автопилот (`auto: true`) для автоматического управления всеми серверами из `velocity.toml` с наследованием базовых параметров (`defaults`), так и точечный whitelist (`auto: false`), позволяя переопределять любые параметры или исключать серверы (`enabled: false`).
 - **Гибкий сторожевой таймер простоя (Idle Watchdog)**:
   Контролирует онлайн игроков, поддерживает период защиты после старта (Startup Grace Period) и настраиваемый таймаут простоя для каждого сервера индивидуально.
 
@@ -62,34 +64,54 @@
 bridge:
   url: "http://host.containers.internal:9000"
   timeout-seconds: 5
+  parameter-name: "server"
+  unit-template: "mc@{server}"
+  hooks:
+    start: "start"
+    stop: "stop"
+    status: "status"
 
 # Сервер-отстойник на время загрузки бэкенда
 limbo-server: "limbo"
 
-# Сообщения игроку
-messages:
-  server-starting: "<gold><b>Сервер <yellow>{server}</yellow> запускается...</b></gold><newline><gray>Пожалуйста, подождите немного</gray>"
-  server-ready: "<green>Сервер готов! Подключение...</green>"
-  server-failed: "<red>Не удалось запустить сервер {server}. Обратитесь к администратору.</red>"
+# Язык по умолчанию, если локаль клиента не распознана
+default-language: "ru"
 
-# Список серверов
+# Автоматическое управление всеми серверами из velocity.toml
+# true  - управляет всеми серверами (кроме limbo-server и серверов с enabled: false)
+# false - управляет только серверами, явно перечисленными в блоке servers
+auto: true
+
+# Базовые параметры по умолчанию для всех серверов
+defaults:
+  idle-timeout-minutes: 10
+  startup-grace-period-seconds: 180
+  poll-interval-seconds: 2
+  max-startup-wait-seconds: 120
+
+# Индивидуальные переопределения (overrides) или точечный whitelist
 servers:
-  pvp:
-    idle-timeout-minutes: 10
-    startup-grace-period-seconds: 180
-    poll-interval-seconds: 2
-    max-startup-wait-seconds: 120
-  pillar:
-    idle-timeout-minutes: 10
-    startup-grace-period-seconds: 180
-    poll-interval-seconds: 2
-    max-startup-wait-seconds: 120
+  # Пример: отключение управления для лобби (работает 24/7)
+  # lobby:
+  #   enabled: false
+
+  # Пример: тяжелый модпак с увеличенным временем запуска
   forge:
     idle-timeout-minutes: 15
     startup-grace-period-seconds: 300
     poll-interval-seconds: 3
     max-startup-wait-seconds: 300
 ```
+
+---
+
+## Интернационализация (i18n)
+
+Сообщения вынесены в отдельную директорию `plugins/lifecycle/languages/`:
+- **Из коробки:** `ru.yml` (русский) и `en.yml` (английский).
+- **Автоопределение:** плагин определяет локаль клиента игрока (`ru-RU`, `en-US` и т.д.).
+- **Диалекты:** можно создавать файлы диалектов, например `ru-ua.yml` или `en-gb.yml`. Если точный диалект не найден, плагин плавно переходит на базовый язык (`ru` или `en`), а затем на `default-language`.
+- **Кастомные языки:** достаточно положить файл `de.yml` в папку `languages/` и выполнить `/lifecycle reload`.
 
 ---
 

@@ -4,34 +4,43 @@ import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.command.SimpleCommand;
 import mu.nada.lifecycle.client.SystemdBridgeClient;
 import mu.nada.lifecycle.config.ConfigManager;
+import mu.nada.lifecycle.config.MessagesConfig;
+import mu.nada.lifecycle.i18n.LanguageManager;
 import mu.nada.lifecycle.model.ManagedServer;
 import mu.nada.lifecycle.model.ServerState;
 import mu.nada.lifecycle.service.ServerRegistry;
 import mu.nada.lifecycle.service.WakeService;
-import net.kyori.adventure.text.minimessage.MiniMessage;
+import mu.nada.lifecycle.util.MessageService;
+import net.kyori.adventure.text.Component;
 import org.slf4j.Logger;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public class LifecycleCommand implements SimpleCommand {
 
     private final ConfigManager configManager;
+    private final LanguageManager languageManager;
     private final ServerRegistry registry;
     private final WakeService wakeService;
     private final SystemdBridgeClient bridgeClient;
+    private final MessageService messageService;
     private final Logger logger;
-    private final MiniMessage miniMessage = MiniMessage.miniMessage();
 
     public LifecycleCommand(ConfigManager configManager,
+                            LanguageManager languageManager,
                             ServerRegistry registry,
                             WakeService wakeService,
                             SystemdBridgeClient bridgeClient,
+                            MessageService messageService,
                             Logger logger) {
         this.configManager = configManager;
+        this.languageManager = languageManager;
         this.registry = registry;
         this.wakeService = wakeService;
         this.bridgeClient = bridgeClient;
+        this.messageService = messageService;
         this.logger = logger;
     }
 
@@ -52,14 +61,14 @@ public class LifecycleCommand implements SimpleCommand {
             case "reload" -> handleReload(source);
             case "start" -> {
                 if (args.length < 2) {
-                    source.sendMessage(miniMessage.deserialize("<red>Использование: /lifecycle start <server></red>"));
+                    messageService.sendMessage(source, MessagesConfig::usageStart);
                     return;
                 }
                 handleStart(source, args[1]);
             }
             case "stop" -> {
                 if (args.length < 2) {
-                    source.sendMessage(miniMessage.deserialize("<red>Использование: /lifecycle stop <server></red>"));
+                    messageService.sendMessage(source, MessagesConfig::usageStop);
                     return;
                 }
                 handleStop(source, args[1]);
@@ -69,7 +78,7 @@ public class LifecycleCommand implements SimpleCommand {
     }
 
     private void handleStatus(CommandSource source) {
-        source.sendMessage(miniMessage.deserialize("<gold>--- [ <yellow>lifecycle: Статус серверов</yellow> ] ---</gold>"));
+        messageService.sendRawMessage(source, messageService.getRawComponent(source, MessagesConfig::statusHeader));
         for (ManagedServer server : registry.all()) {
             int online = server.registeredServer().getPlayersConnected().size();
             String color = switch (server.state()) {
@@ -79,63 +88,66 @@ public class LifecycleCommand implements SimpleCommand {
                 case STOPPED -> "<red>";
             };
 
-            String line = String.format("<gray>- <white><b>%s</b></white>: %s%s</color> <dark_gray>| Онлайн: <white>%d</white> | Очередь: <white>%d</white></dark_gray>",
-                    server.name(), color, server.state(), online, server.queuedPlayers().size());
-            source.sendMessage(miniMessage.deserialize(line));
+            Component line = messageService.getRawComponent(source, MessagesConfig::statusLine, Map.of(
+                    "server", server.name(),
+                    "color", color,
+                    "state", server.state().name(),
+                    "online", String.valueOf(online),
+                    "queued", String.valueOf(server.queuedPlayers().size())
+            ));
+            messageService.sendRawMessage(source, line);
         }
     }
 
     private void handleReload(CommandSource source) {
         try {
             configManager.reload();
+            languageManager.reload(configManager.config().defaultLanguage());
             registry.load(configManager.config());
             bridgeClient.updateSettings(configManager.config().bridge());
-            source.sendMessage(miniMessage.deserialize("<green>Конфигурация lifecycle успешно перезагружена!</green>"));
+            messageService.sendMessage(source, MessagesConfig::reloadSuccess);
         } catch (Exception e) {
             logger.error("Failed to reload configuration", e);
-            source.sendMessage(miniMessage.deserialize("<red>Ошибка при перезагрузке конфига: " + e.getMessage() + "</red>"));
+            messageService.sendMessage(source, MessagesConfig::reloadError,
+                    Map.of("error", e.getMessage() != null ? e.getMessage() : "unknown"));
         }
     }
 
     private void handleStart(CommandSource source, String serverName) {
         Optional<ManagedServer> optServer = registry.get(serverName);
         if (optServer.isEmpty()) {
-            source.sendMessage(miniMessage.deserialize("<red>Сервер '" + serverName + "' не найден в управляемых!</red>"));
+            messageService.sendMessage(source, MessagesConfig::serverNotFound, Map.of("server", serverName));
             return;
         }
 
-        source.sendMessage(miniMessage.deserialize("<yellow>Отправлен сигнал запуска для " + serverName + "...</yellow>"));
+        messageService.sendMessage(source, MessagesConfig::startInitiated, Map.of("server", serverName));
         wakeService.startWarmup(serverName);
     }
 
     private void handleStop(CommandSource source, String serverName) {
         Optional<ManagedServer> optServer = registry.get(serverName);
         if (optServer.isEmpty()) {
-            source.sendMessage(miniMessage.deserialize("<red>Сервер '" + serverName + "' не найден в управляемых!</red>"));
+            messageService.sendMessage(source, MessagesConfig::serverNotFound, Map.of("server", serverName));
             return;
         }
 
         ManagedServer server = optServer.get();
         server.setState(ServerState.STOPPING);
-        source.sendMessage(miniMessage.deserialize("<yellow>Отправлен сигнал остановки для " + serverName + "...</yellow>"));
+        messageService.sendMessage(source, MessagesConfig::stopInitiated, Map.of("server", serverName));
 
         bridgeClient.stopServer(serverName, server.unitName()).thenAccept(success -> {
             if (success) {
                 server.setState(ServerState.STOPPED);
-                source.sendMessage(miniMessage.deserialize("<green>Сервер " + serverName + " успешно остановлен.</green>"));
+                messageService.sendMessage(source, MessagesConfig::stopSuccess, Map.of("server", serverName));
             } else {
                 server.setState(ServerState.RUNNING);
-                source.sendMessage(miniMessage.deserialize("<red>Не удалось остановить сервер " + serverName + "!</red>"));
+                messageService.sendMessage(source, MessagesConfig::stopFailed, Map.of("server", serverName));
             }
         });
     }
 
     private void sendHelp(CommandSource source) {
-        source.sendMessage(miniMessage.deserialize("<gold>--- [ <yellow>lifecycle Commands</yellow> ] ---</gold>"));
-        source.sendMessage(miniMessage.deserialize("<yellow>/lifecycle status</yellow> <gray>- Просмотр состояния серверов</gray>"));
-        source.sendMessage(miniMessage.deserialize("<yellow>/lifecycle start <server></yellow> <gray>- Принудительный запуск сервера</gray>"));
-        source.sendMessage(miniMessage.deserialize("<yellow>/lifecycle stop <server></yellow> <gray>- Принудительная остановка сервера</gray>"));
-        source.sendMessage(miniMessage.deserialize("<yellow>/lifecycle reload</yellow> <gray>- Перезагрузка конфигурации</gray>"));
+        messageService.sendRawMessage(source, messageService.getRawComponent(source, MessagesConfig::commandHelp));
     }
 
     @Override

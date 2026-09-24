@@ -15,13 +15,17 @@ public class LifecycleConfig {
     @Comment("Fallback server used to hold players while backend servers are booting up")
     private String limboServer = "limbo";
 
-    @Comment("Player notifications displayed during server startup (MiniMessage format)")
-    private MessageSettings messages = new MessageSettings();
+    @Comment("Default language for messages if client locale cannot be determined (e.g. 'ru', 'en')")
+    private String defaultLanguage = "ru";
 
-    @Comment("Managed backend servers mapped to their individual lifecycle configurations")
+    @Comment("Automatically manage all servers registered in velocity.toml (except limbo and disabled)")
+    private boolean auto = true;
+
+    @Comment("Default settings applied to any managed server unless overridden")
+    private ServerSettings defaults = new ServerSettings(10, 180, 2, 120);
+
+    @Comment("Server-specific overrides or whitelist")
     private Map<String, ServerSettings> servers = new HashMap<>(Map.of(
-            "pvp", new ServerSettings(10, 180, 2, 120),
-            "pillar", new ServerSettings(10, 180, 2, 120),
             "forge", new ServerSettings(15, 300, 3, 300)
     ));
 
@@ -33,12 +37,20 @@ public class LifecycleConfig {
         return limboServer;
     }
 
-    public MessageSettings messages() {
-        return messages;
+    public String defaultLanguage() {
+        return defaultLanguage != null && !defaultLanguage.isBlank() ? defaultLanguage : "ru";
+    }
+
+    public boolean auto() {
+        return auto;
+    }
+
+    public ServerSettings defaults() {
+        return defaults != null ? defaults : new ServerSettings(10, 180, 2, 120);
     }
 
     public Map<String, ServerSettings> servers() {
-        return servers;
+        return servers != null ? servers : Map.of();
     }
 
     @ConfigSerializable
@@ -48,6 +60,9 @@ public class LifecycleConfig {
 
         @Comment("Timeout in seconds for webhook HTTP requests")
         private int timeoutSeconds = 5;
+
+        @Comment("Optional authorization token sent in the X-Bridge-Token HTTP header")
+        private String token = "";
 
         @Comment("Name of the query parameter passed to the webhook (defaults to 'server')")
         private String parameterName = "server";
@@ -62,8 +77,13 @@ public class LifecycleConfig {
         }
 
         public BridgeSettings(String url, int timeoutSeconds, String parameterName, String unitTemplate, HookSettings hooks) {
+            this(url, timeoutSeconds, "", parameterName, unitTemplate, hooks);
+        }
+
+        public BridgeSettings(String url, int timeoutSeconds, String token, String parameterName, String unitTemplate, HookSettings hooks) {
             this.url = url;
             this.timeoutSeconds = timeoutSeconds;
+            this.token = token;
             this.parameterName = parameterName;
             this.unitTemplate = unitTemplate;
             this.hooks = hooks;
@@ -75,6 +95,10 @@ public class LifecycleConfig {
 
         public int timeoutSeconds() {
             return timeoutSeconds;
+        }
+
+        public String token() {
+            return token != null ? token : "";
         }
 
         public String parameterName() {
@@ -132,50 +156,35 @@ public class LifecycleConfig {
     }
 
     @ConfigSerializable
-    public static class MessageSettings {
-        private String serverStarting = "<gold><b>Сервер <yellow>{server}</yellow> запускается...</b></gold><newline><gray>Пожалуйста, подождите немного</gray>";
-        private String serverReady = "<green>Сервер {server} готов! Подключение...</green>";
-        private String serverFailed = "<red>Не удалось запустить сервер {server}. Пожалуйста, обратитесь к администратору.</red>";
-
-        public String serverStarting() {
-            return serverStarting;
-        }
-
-        public String serverReady() {
-            return serverReady;
-        }
-
-        public String serverFailed() {
-            return serverFailed;
-        }
-    }
-
-    @ConfigSerializable
     public static class ServerSettings {
         @Comment("Optional custom systemd unit name. If omitted, bridge.unit-template is used")
-        private String unit = "";
+        private String unit = null;
+
+        @Comment("Whether this server is managed by lifecycle (set to false to exclude in auto mode)")
+        private Boolean enabled = null;
 
         @Comment("How long the server can stay completely empty before being stopped (in minutes)")
-        private int idleTimeoutMinutes = 10;
+        private Integer idleTimeoutMinutes = null;
 
         @Comment("Minimum time after boot before idle shutdown checks are enforced (in seconds)")
-        private int startupGracePeriodSeconds = 180;
+        private Integer startupGracePeriodSeconds = null;
 
         @Comment("Interval between TCP pings while checking if server is alive (in seconds)")
-        private int pollIntervalSeconds = 2;
+        private Integer pollIntervalSeconds = null;
 
         @Comment("Maximum time to wait for server to report alive before failing (in seconds)")
-        private int maxStartupWaitSeconds = 120;
+        private Integer maxStartupWaitSeconds = null;
 
         public ServerSettings() {
         }
 
         public ServerSettings(int idleTimeoutMinutes, int startupGracePeriodSeconds, int pollIntervalSeconds, int maxStartupWaitSeconds) {
-            this("", idleTimeoutMinutes, startupGracePeriodSeconds, pollIntervalSeconds, maxStartupWaitSeconds);
+            this(null, true, idleTimeoutMinutes, startupGracePeriodSeconds, pollIntervalSeconds, maxStartupWaitSeconds);
         }
 
-        public ServerSettings(String unit, int idleTimeoutMinutes, int startupGracePeriodSeconds, int pollIntervalSeconds, int maxStartupWaitSeconds) {
-            this.unit = unit != null ? unit : "";
+        public ServerSettings(String unit, Boolean enabled, Integer idleTimeoutMinutes, Integer startupGracePeriodSeconds, Integer pollIntervalSeconds, Integer maxStartupWaitSeconds) {
+            this.unit = unit;
+            this.enabled = enabled;
             this.idleTimeoutMinutes = idleTimeoutMinutes;
             this.startupGracePeriodSeconds = startupGracePeriodSeconds;
             this.pollIntervalSeconds = pollIntervalSeconds;
@@ -183,23 +192,70 @@ public class LifecycleConfig {
         }
 
         public String unit() {
-            return unit;
+            return unit != null ? unit : "";
+        }
+
+        public boolean isEnabled() {
+            return enabled == null || enabled;
+        }
+
+        public Boolean rawEnabled() {
+            return enabled;
         }
 
         public int idleTimeoutMinutes() {
-            return idleTimeoutMinutes;
+            return idleTimeoutMinutes != null ? idleTimeoutMinutes : 10;
         }
 
         public int startupGracePeriodSeconds() {
-            return startupGracePeriodSeconds;
+            return startupGracePeriodSeconds != null ? startupGracePeriodSeconds : 180;
         }
 
         public int pollIntervalSeconds() {
-            return pollIntervalSeconds;
+            return pollIntervalSeconds != null ? pollIntervalSeconds : 2;
         }
 
         public int maxStartupWaitSeconds() {
-            return maxStartupWaitSeconds;
+            return maxStartupWaitSeconds != null ? maxStartupWaitSeconds : 120;
+        }
+
+        public ServerSettings mergeWith(ServerSettings override) {
+            if (override == null) {
+                return this;
+            }
+
+            String effectiveUnit = (override.unit != null && !override.unit.isBlank())
+                    ? override.unit
+                    : this.unit();
+
+            boolean effectiveEnabled = override.enabled != null
+                    ? override.enabled
+                    : this.isEnabled();
+
+            int effectiveIdle = override.idleTimeoutMinutes != null
+                    ? override.idleTimeoutMinutes
+                    : this.idleTimeoutMinutes();
+
+            int effectiveGrace = override.startupGracePeriodSeconds != null
+                    ? override.startupGracePeriodSeconds
+                    : this.startupGracePeriodSeconds();
+
+            int effectivePoll = override.pollIntervalSeconds != null
+                    ? override.pollIntervalSeconds
+                    : this.pollIntervalSeconds();
+
+            int effectiveMaxStartup = override.maxStartupWaitSeconds != null
+                    ? override.maxStartupWaitSeconds
+                    : this.maxStartupWaitSeconds();
+
+            return new ServerSettings(
+                    effectiveUnit,
+                    effectiveEnabled,
+                    effectiveIdle,
+                    effectiveGrace,
+                    effectivePoll,
+                    effectiveMaxStartup
+            );
         }
     }
 }

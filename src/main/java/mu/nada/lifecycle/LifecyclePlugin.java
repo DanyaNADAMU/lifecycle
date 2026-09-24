@@ -16,12 +16,14 @@ import mu.nada.lifecycle.client.SystemdBridgeClient;
 import mu.nada.lifecycle.commands.LifecycleCommand;
 import mu.nada.lifecycle.config.ConfigManager;
 import mu.nada.lifecycle.config.LifecycleConfig;
+import mu.nada.lifecycle.i18n.LanguageManager;
 import mu.nada.lifecycle.listeners.DisconnectListener;
 import mu.nada.lifecycle.listeners.InitialServerListener;
 import mu.nada.lifecycle.listeners.PreConnectListener;
 import mu.nada.lifecycle.service.IdleService;
 import mu.nada.lifecycle.service.ServerRegistry;
 import mu.nada.lifecycle.service.WakeService;
+import mu.nada.lifecycle.util.MessageService;
 import org.slf4j.Logger;
 import org.spongepowered.configurate.ConfigurateException;
 
@@ -44,6 +46,8 @@ public class LifecyclePlugin {
     private final Path dataDirectory;
 
     private ConfigManager configManager;
+    private LanguageManager languageManager;
+    private MessageService messageService;
     private SystemdBridgeClient bridgeClient;
     private ServerRegistry serverRegistry;
     private AuthBridge authBridge;
@@ -73,7 +77,16 @@ public class LifecyclePlugin {
 
         LifecycleConfig config = configManager.config();
 
-        // 2. Initialize components
+        // 2. Initialize i18n
+        this.languageManager = new LanguageManager(dataDirectory, logger);
+        try {
+            this.languageManager.reload(config.defaultLanguage());
+        } catch (ConfigurateException e) {
+            logger.error("Failed to load language dictionaries!", e);
+        }
+        this.messageService = new MessageService(languageManager);
+
+        // 3. Initialize components
         this.bridgeClient = new SystemdBridgeClient(config.bridge(), logger);
         this.serverRegistry = new ServerRegistry(server, logger);
         this.serverRegistry.load(config);
@@ -85,7 +98,7 @@ public class LifecyclePlugin {
                 serverRegistry,
                 bridgeClient,
                 authBridge,
-                config,
+                messageService,
                 logger
         );
 
@@ -98,13 +111,13 @@ public class LifecyclePlugin {
         );
         this.idleService.start();
 
-        // 3. Register listeners
+        // 4. Register listeners
         EventManager eventManager = server.getEventManager();
         eventManager.register(this, new InitialServerListener(serverRegistry, wakeService, logger));
         eventManager.register(this, new PreConnectListener(server, serverRegistry, wakeService, authBridge, config, logger));
         eventManager.register(this, new DisconnectListener(wakeService));
 
-        // 4. Register commands
+        // 5. Register commands
         CommandManager commandManager = server.getCommandManager();
         CommandMeta commandMeta = commandManager.metaBuilder("lifecycle")
                 .aliases("lc")
@@ -113,9 +126,11 @@ public class LifecyclePlugin {
 
         commandManager.register(commandMeta, new LifecycleCommand(
                 configManager,
+                languageManager,
                 serverRegistry,
                 wakeService,
                 bridgeClient,
+                messageService,
                 logger
         ));
 
@@ -149,6 +164,14 @@ public class LifecyclePlugin {
 
     public ConfigManager getConfigManager() {
         return configManager;
+    }
+
+    public LanguageManager getLanguageManager() {
+        return languageManager;
+    }
+
+    public MessageService getMessageService() {
+        return messageService;
     }
 
     public ServerRegistry getServerRegistry() {

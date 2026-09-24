@@ -14,8 +14,16 @@
                             │
                             ▼
           ┌───────────────────────────────────┐
-          │     lifecycle Plugin       │
+          │     lifecycle Plugin              │
           │                                   │
+          │  ┌─────────────────────────────┐  │
+          │  │     LanguageManager (i18n)  │  │ (Loads ru/en/dialects from languages/)
+          │  └──────────────┬──────────────┘  │
+          │                 ▼                 │
+          │  ┌─────────────────────────────┐  │
+          │  │     MessageService          │  │ (MiniMessage, player locale & Title/Actionbar)
+          │  └──────────────┬──────────────┘  │
+          │                 ▼                 │
           │  ┌─────────────────────────────┐  │
           │  │     AuthBridge (Soft)       │  │──────┐ (Queries AuthState)
           │  └──────────────┬──────────────┘  │      │
@@ -121,3 +129,51 @@
      - If `now - emptySince >= idleTimeout`:
        - Dispatches `POST /hooks/stop-server?server=<name>`.
        - Transitions state to `STOPPED`.
+
+---
+
+## Pool Discovery & Baseline Defaults
+
+`ServerRegistry` manages the target server pool using two flexible strategies:
+1. **Autopilot (`auto: true`)**:
+   - Queries all registered servers in Velocity (`proxyServer.getAllServers()`).
+   - Automatically excludes `limbo-server` and any servers explicitly marked with `enabled: false`.
+   - Applies baseline settings from `defaults` (`idleTimeoutMinutes`, `startupGracePeriodSeconds`, `pollIntervalSeconds`, `maxStartupWaitSeconds`).
+   - Merges server-specific overrides from the `servers:` dictionary.
+2. **Whitelist (`auto: false`)**:
+   - Manages only servers explicitly enumerated in the `servers:` block with `enabled != false`.
+   - Unspecified timing properties are inherited from `defaults`.
+
+```
+                  ┌───────────────────────────────┐
+                  │ Velocity proxyServer.getAll() │
+                  └──────────────┬────────────────┘
+                                 │
+                 auto: true? ────┴──── auto: false?
+                ┌───────────────┐     ┌───────────────┐
+                │ All Backends  │     │ servers: list │
+                └───────┬───────┘     └───────┬───────┘
+                        │                     │
+                        ▼                     ▼
+             Exclude limbo & disabled   Validate in Velocity
+                        │                     │
+                        └──────────┬──────────┘
+                                   │
+                                   ▼
+                 defaults.mergeWith(serverOverrides)
+                                   │
+                                   ▼
+                             ManagedServer
+```
+
+---
+
+## Internationalization (i18n) Engine
+
+User and admin feedback is localized via `LanguageManager` and `MessageService`:
+- **Storage**: Dictionaries are stored in `plugins/lifecycle/languages/` (`ru.yml`, `en.yml`, plus custom files).
+- **Resolution Strategy**:
+  1. **Dialect Match**: Inspects `player.getPlayerSettings().getLocale()` for dialect tags (e.g. `ru-ua`, `en-us`).
+  2. **Base Language Match**: Falls back to the base language code (e.g. `ru`, `en`).
+  3. **Global Default**: Falls back to `default-language` (default: `"ru"`).
+- **Format**: MiniMessage syntax with standard placeholders (`{server}`, `{state}`, `{online}`, `{queued}`).

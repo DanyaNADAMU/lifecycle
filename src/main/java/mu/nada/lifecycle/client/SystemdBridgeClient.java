@@ -38,9 +38,7 @@ public class SystemdBridgeClient {
         String hookName = settings.hooks().start();
         String url = buildUrl(hookName, unitName);
 
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .timeout(Duration.ofSeconds(settings.timeoutSeconds()))
+        HttpRequest request = createRequestBuilder(url)
                 .POST(HttpRequest.BodyPublishers.noBody())
                 .build();
 
@@ -71,9 +69,7 @@ public class SystemdBridgeClient {
         String hookName = settings.hooks().stop();
         String url = buildUrl(hookName, unitName);
 
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .timeout(Duration.ofSeconds(settings.timeoutSeconds()))
+        HttpRequest request = createRequestBuilder(url)
                 .POST(HttpRequest.BodyPublishers.noBody())
                 .build();
 
@@ -104,9 +100,7 @@ public class SystemdBridgeClient {
         String hookName = settings.hooks().status();
         String url = buildUrl(hookName, unitName);
 
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .timeout(Duration.ofSeconds(settings.timeoutSeconds()))
+        HttpRequest request = createRequestBuilder(url)
                 .GET()
                 .build();
 
@@ -148,5 +142,17 @@ public class SystemdBridgeClient {
                 URLEncoder.encode(hookName, StandardCharsets.UTF_8),
                 URLEncoder.encode(settings.parameterName(), StandardCharsets.UTF_8),
                 URLEncoder.encode(unitName, StandardCharsets.UTF_8));
+    }
+
+    private HttpRequest.Builder createRequestBuilder(String url) {
+        HttpRequest.Builder builder = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .timeout(Duration.ofSeconds(settings.timeoutSeconds()));
+
+        String token = settings.token();
+        if (token != null && !token.isBlank()) {
+            builder.header("X-Bridge-Token", token);
+        }
+        return builder;
     }
 }
