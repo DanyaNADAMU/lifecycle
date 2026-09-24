@@ -1,4 +1,4 @@
-package mu.nada.nadamulifecycle;
+package mu.nada.lifecycle;
 
 import com.google.inject.Inject;
 import com.velocitypowered.api.command.CommandManager;
@@ -11,25 +11,25 @@ import com.velocitypowered.api.plugin.Dependency;
 import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.plugin.annotation.DataDirectory;
 import com.velocitypowered.api.proxy.ProxyServer;
-import mu.nada.nadamulifecycle.auth.AuthBridge;
-import mu.nada.nadamulifecycle.client.SystemdBridgeClient;
-import mu.nada.nadamulifecycle.commands.LifecycleCommand;
-import mu.nada.nadamulifecycle.config.ConfigManager;
-import mu.nada.nadamulifecycle.config.LifecycleConfig;
-import mu.nada.nadamulifecycle.listeners.DisconnectListener;
-import mu.nada.nadamulifecycle.listeners.InitialServerListener;
-import mu.nada.nadamulifecycle.listeners.PreConnectListener;
-import mu.nada.nadamulifecycle.service.IdleService;
-import mu.nada.nadamulifecycle.service.ServerRegistry;
-import mu.nada.nadamulifecycle.service.WakeService;
+import mu.nada.lifecycle.auth.AuthBridge;
+import mu.nada.lifecycle.client.SystemdBridgeClient;
+import mu.nada.lifecycle.commands.LifecycleCommand;
+import mu.nada.lifecycle.config.ConfigManager;
+import mu.nada.lifecycle.config.LifecycleConfig;
+import mu.nada.lifecycle.listeners.DisconnectListener;
+import mu.nada.lifecycle.listeners.InitialServerListener;
+import mu.nada.lifecycle.listeners.PreConnectListener;
+import mu.nada.lifecycle.service.IdleService;
+import mu.nada.lifecycle.service.ServerRegistry;
+import mu.nada.lifecycle.service.WakeService;
 import org.slf4j.Logger;
 import org.spongepowered.configurate.ConfigurateException;
 
 import java.nio.file.Path;
 
 @Plugin(
-        id = "nadamu-lifecycle",
-        name = "nadamu-lifecycle",
+        id = "lifecycle",
+        name = "lifecycle",
         version = "1.0.0",
         authors = {"DanyaNADAMU"},
         description = "Scale-to-Zero and Server Lifecycle Manager for Velocity & Podman Quadlet",
@@ -37,7 +37,7 @@ import java.nio.file.Path;
                 @Dependency(id = "nadamu-auth", optional = true)
         }
 )
-public class NadamuLifecyclePlugin {
+public class LifecyclePlugin {
 
     private final ProxyServer server;
     private final Logger logger;
@@ -51,7 +51,7 @@ public class NadamuLifecyclePlugin {
     private IdleService idleService;
 
     @Inject
-    public NadamuLifecyclePlugin(ProxyServer server, Logger logger, @DataDirectory Path dataDirectory) {
+    public LifecyclePlugin(ProxyServer server, Logger logger, @DataDirectory Path dataDirectory) {
         this.server = server;
         this.logger = logger;
         this.dataDirectory = dataDirectory;
@@ -59,7 +59,7 @@ public class NadamuLifecyclePlugin {
 
     @Subscribe
     public void onProxyInitialization(ProxyInitializeEvent event) {
-        logger.info("Initializing nadamu-lifecycle...");
+        logger.info("Initializing lifecycle...");
 
         // 1. Load configuration
         this.configManager = new ConfigManager(dataDirectory, logger);
@@ -67,7 +67,7 @@ public class NadamuLifecyclePlugin {
             this.configManager.reload();
             logger.info("Configuration loaded successfully.");
         } catch (ConfigurateException e) {
-            logger.error("Failed to load nadamu-lifecycle configuration!", e);
+            logger.error("Failed to load lifecycle configuration!", e);
             return;
         }
 
@@ -107,7 +107,7 @@ public class NadamuLifecyclePlugin {
         // 4. Register commands
         CommandManager commandManager = server.getCommandManager();
         CommandMeta commandMeta = commandManager.metaBuilder("lifecycle")
-                .aliases("nlc", "nl")
+                .aliases("lc")
                 .plugin(this)
                 .build();
 
@@ -119,12 +119,12 @@ public class NadamuLifecyclePlugin {
                 logger
         ));
 
-        logger.info("nadamu-lifecycle has been initialized successfully!");
+        logger.info("lifecycle has been initialized successfully!");
     }
 
     @Subscribe
     public void onProxyShutdown(ProxyShutdownEvent event) {
-        logger.info("Shutting down nadamu-lifecycle...");
+        logger.info("Shutting down lifecycle...");
 
         if (idleService != null) {
             idleService.stop();

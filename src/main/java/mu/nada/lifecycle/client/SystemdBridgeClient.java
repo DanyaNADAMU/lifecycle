@@ -1,6 +1,6 @@
-package mu.nada.nadamulifecycle.client;
+package mu.nada.lifecycle.client;
 
-import mu.nada.nadamulifecycle.config.LifecycleConfig;
+import mu.nada.lifecycle.config.LifecycleConfig;
 import org.slf4j.Logger;
 
 import java.net.URI;

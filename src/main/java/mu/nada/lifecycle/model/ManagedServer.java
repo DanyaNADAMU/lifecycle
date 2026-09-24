@@ -1,7 +1,7 @@
-package mu.nada.nadamulifecycle.model;
+package mu.nada.lifecycle.model;
 
 import com.velocitypowered.api.proxy.server.RegisteredServer;
-import mu.nada.nadamulifecycle.config.LifecycleConfig;
+import mu.nada.lifecycle.config.LifecycleConfig;
 
 import java.time.Instant;
 import java.util.Collections;

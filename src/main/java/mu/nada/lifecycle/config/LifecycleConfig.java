@@ -1,4 +1,4 @@
-package mu.nada.nadamulifecycle.config;
+package mu.nada.lifecycle.config;
 
 import org.spongepowered.configurate.objectmapping.ConfigSerializable;
 import org.spongepowered.configurate.objectmapping.meta.Comment;

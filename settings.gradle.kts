@@ -1,1 +1,1 @@
-rootProject.name = "nadamu-lifecycle"
+rootProject.name = "lifecycle"

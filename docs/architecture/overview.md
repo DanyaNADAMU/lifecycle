@@ -1,4 +1,4 @@
-# Architecture Overview: nadamu-lifecycle
+# Architecture Overview: lifecycle
 
 ## Component Diagram
 
@@ -14,7 +14,7 @@
                             │
                             ▼
           ┌───────────────────────────────────┐
-          │     nadamu-lifecycle Plugin       │
+          │     lifecycle Plugin       │
           │                                   │
           │  ┌─────────────────────────────┐  │
           │  │     AuthBridge (Soft)       │  │──────┐ (Queries AuthState)

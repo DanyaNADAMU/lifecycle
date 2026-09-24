@@ -1,10 +1,10 @@
-package mu.nada.nadamulifecycle.listeners;
+package mu.nada.lifecycle.listeners;
 
 import com.velocitypowered.api.event.PostOrder;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.player.PlayerChooseInitialServerEvent;
-import mu.nada.nadamulifecycle.service.ServerRegistry;
-import mu.nada.nadamulifecycle.service.WakeService;
+import mu.nada.lifecycle.service.ServerRegistry;
+import mu.nada.lifecycle.service.WakeService;
 import org.slf4j.Logger;
 
 public class InitialServerListener {

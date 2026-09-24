@@ -1,4 +1,4 @@
-package mu.nada.nadamulifecycle.model;
+package mu.nada.lifecycle.model;
 
 public enum ServerState {
     STOPPED,

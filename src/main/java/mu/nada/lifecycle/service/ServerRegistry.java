@@ -1,9 +1,9 @@
-package mu.nada.nadamulifecycle.service;
+package mu.nada.lifecycle.service;
 
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
-import mu.nada.nadamulifecycle.config.LifecycleConfig;
-import mu.nada.nadamulifecycle.model.ManagedServer;
+import mu.nada.lifecycle.config.LifecycleConfig;
+import mu.nada.lifecycle.model.ManagedServer;
 import org.slf4j.Logger;
 
 import java.util.Collection;

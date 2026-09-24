@@ -1,14 +1,14 @@
-package mu.nada.nadamulifecycle.service;
+package mu.nada.lifecycle.service;
 
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.scheduler.ScheduledTask;
-import mu.nada.nadamulifecycle.auth.AuthBridge;
-import mu.nada.nadamulifecycle.client.SystemdBridgeClient;
-import mu.nada.nadamulifecycle.config.LifecycleConfig;
-import mu.nada.nadamulifecycle.model.ManagedServer;
-import mu.nada.nadamulifecycle.model.ServerState;
+import mu.nada.lifecycle.auth.AuthBridge;
+import mu.nada.lifecycle.client.SystemdBridgeClient;
+import mu.nada.lifecycle.config.LifecycleConfig;
+import mu.nada.lifecycle.model.ManagedServer;
+import mu.nada.lifecycle.model.ServerState;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.title.Title;

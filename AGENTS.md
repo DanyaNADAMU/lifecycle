@@ -1,12 +1,12 @@
 # AGENTS.md
 
 ## Project Context
-- **Project Name**: nadamu-lifecycle
+- **Project Name**: lifecycle
 - **Target Platform**: Velocity Proxy (version 4.0.0+)
 - **Runtime**: Java 25
 - **Build System**: Gradle with Kotlin DSL (`build.gradle.kts`)
 - **Group**: `mu.nada`
-- **Artifact**: `nadamu-lifecycle`
+- **Artifact**: `lifecycle`
 - **Target OS / Environment**: Debian 12, Rootless Podman with Quadlet (`systemd --user`)
 
 ## Key Architecture Principles
@@ -22,7 +22,7 @@
    - Because Quadlet uses `--rm` on container termination, containers are ephemeral. The authoritative controller is `systemctl --user`.
    - The plugin communicates with systemd via an official `webhook` daemon running under user `minecraft` on the host at `http://host.containers.internal:9000`.
 3. **Security & Auth Bypass Prevention**:
-   - `nadamu-lifecycle` never independently teleports a player whose state in `nadamu-auth` is `PENDING_LOGIN`.
+   - `lifecycle` never independently teleports a player whose state in `nadamu-auth` is `PENDING_LOGIN`.
    - Parallel warmup boots the container immediately when a player joins via a forced host, but player transfers only occur after successful authentication.
    - Velocity event priorities (`PostOrder.FIRST` / `PostOrder.EARLY`) ensure that auth firewalls always retain final authority.
 4. **Scale-to-Zero & Resource Optimization**:

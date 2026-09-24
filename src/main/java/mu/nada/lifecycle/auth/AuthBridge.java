@@ -1,4 +1,4 @@
-package mu.nada.nadamulifecycle.auth;
+package mu.nada.lifecycle.auth;
 
 import com.velocitypowered.api.plugin.PluginContainer;
 import com.velocitypowered.api.proxy.Player;

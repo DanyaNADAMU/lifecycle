@@ -1,13 +1,13 @@
-package mu.nada.nadamulifecycle.commands;
+package mu.nada.lifecycle.commands;
 
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.command.SimpleCommand;
-import mu.nada.nadamulifecycle.client.SystemdBridgeClient;
-import mu.nada.nadamulifecycle.config.ConfigManager;
-import mu.nada.nadamulifecycle.model.ManagedServer;
-import mu.nada.nadamulifecycle.model.ServerState;
-import mu.nada.nadamulifecycle.service.ServerRegistry;
-import mu.nada.nadamulifecycle.service.WakeService;
+import mu.nada.lifecycle.client.SystemdBridgeClient;
+import mu.nada.lifecycle.config.ConfigManager;
+import mu.nada.lifecycle.model.ManagedServer;
+import mu.nada.lifecycle.model.ServerState;
+import mu.nada.lifecycle.service.ServerRegistry;
+import mu.nada.lifecycle.service.WakeService;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.slf4j.Logger;
 
@@ -69,7 +69,7 @@ public class LifecycleCommand implements SimpleCommand {
     }
 
     private void handleStatus(CommandSource source) {
-        source.sendMessage(miniMessage.deserialize("<gold>--- [ <yellow>nadamu-lifecycle: Статус серверов</yellow> ] ---</gold>"));
+        source.sendMessage(miniMessage.deserialize("<gold>--- [ <yellow>lifecycle: Статус серверов</yellow> ] ---</gold>"));
         for (ManagedServer server : registry.all()) {
             int online = server.registeredServer().getPlayersConnected().size();
             String color = switch (server.state()) {
@@ -89,7 +89,7 @@ public class LifecycleCommand implements SimpleCommand {
         try {
             configManager.reload();
             registry.load(configManager.config());
-            source.sendMessage(miniMessage.deserialize("<green>Конфигурация nadamu-lifecycle успешно перезагружена!</green>"));
+            source.sendMessage(miniMessage.deserialize("<green>Конфигурация lifecycle успешно перезагружена!</green>"));
         } catch (Exception e) {
             logger.error("Failed to reload configuration", e);
             source.sendMessage(miniMessage.deserialize("<red>Ошибка при перезагрузке конфига: " + e.getMessage() + "</red>"));
@@ -130,7 +130,7 @@ public class LifecycleCommand implements SimpleCommand {
     }
 
     private void sendHelp(CommandSource source) {
-        source.sendMessage(miniMessage.deserialize("<gold>--- [ <yellow>nadamu-lifecycle Commands</yellow> ] ---</gold>"));
+        source.sendMessage(miniMessage.deserialize("<gold>--- [ <yellow>lifecycle Commands</yellow> ] ---</gold>"));
         source.sendMessage(miniMessage.deserialize("<yellow>/lifecycle status</yellow> <gray>- Просмотр состояния серверов</gray>"));
         source.sendMessage(miniMessage.deserialize("<yellow>/lifecycle start <server></yellow> <gray>- Принудительный запуск сервера</gray>"));
         source.sendMessage(miniMessage.deserialize("<yellow>/lifecycle stop <server></yellow> <gray>- Принудительная остановка сервера</gray>"));

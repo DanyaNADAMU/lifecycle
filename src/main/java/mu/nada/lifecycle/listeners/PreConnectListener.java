@@ -1,4 +1,4 @@
-package mu.nada.nadamulifecycle.listeners;
+package mu.nada.lifecycle.listeners;
 
 import com.velocitypowered.api.event.PostOrder;
 import com.velocitypowered.api.event.Subscribe;
@@ -6,12 +6,12 @@ import com.velocitypowered.api.event.player.ServerPreConnectEvent;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
-import mu.nada.nadamulifecycle.auth.AuthBridge;
-import mu.nada.nadamulifecycle.config.LifecycleConfig;
-import mu.nada.nadamulifecycle.model.ManagedServer;
-import mu.nada.nadamulifecycle.model.ServerState;
-import mu.nada.nadamulifecycle.service.ServerRegistry;
-import mu.nada.nadamulifecycle.service.WakeService;
+import mu.nada.lifecycle.auth.AuthBridge;
+import mu.nada.lifecycle.config.LifecycleConfig;
+import mu.nada.lifecycle.model.ManagedServer;
+import mu.nada.lifecycle.model.ServerState;
+import mu.nada.lifecycle.service.ServerRegistry;
+import mu.nada.lifecycle.service.WakeService;
 import org.slf4j.Logger;
 
 import java.util.Optional;

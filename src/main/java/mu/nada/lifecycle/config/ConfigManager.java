@@ -1,4 +1,4 @@
-package mu.nada.nadamulifecycle.config;
+package mu.nada.lifecycle.config;
 
 import org.slf4j.Logger;
 import org.spongepowered.configurate.CommentedConfigurationNode;

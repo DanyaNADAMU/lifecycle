@@ -1,8 +1,8 @@
-package mu.nada.nadamulifecycle.listeners;
+package mu.nada.lifecycle.listeners;
 
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.DisconnectEvent;
-import mu.nada.nadamulifecycle.service.WakeService;
+import mu.nada.lifecycle.service.WakeService;
 
 public class DisconnectListener {
 

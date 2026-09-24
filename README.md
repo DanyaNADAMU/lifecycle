@@ -1,4 +1,4 @@
-# nadamu-lifecycle
+# lifecycle
 
 Modern, lightweight, and rock-solid Server Lifecycle & Scale-to-Zero management plugin for **Velocity** proxy networks.
 
@@ -37,7 +37,7 @@ Designed specifically for containerized Minecraft infrastructures using **Podman
                                     │
                                     ▼
                      ┌─────────────────────────────┐
-                     │       nadamu-lifecycle      │
+                     │       lifecycle      │
                      │  (Wakes mc@pvp in parallel) │
                      └──────────────┬──────────────┘
                                     │ HTTP POST
